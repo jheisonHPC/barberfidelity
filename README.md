@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🪒 Sistema de Fidelización para Barberías
 
-## Getting Started
+Sistema de tarjeta de sellos digital para barberías. 5 cortes pagados = 1 corte GRATIS.
 
-First, run the development server:
+## 📁 Estructura del Proyecto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+barber-fidelity/
+├── prisma/
+│   ├── schema.prisma      # Schema de base de datos
+│   ├── seed.ts            # Datos de prueba
+│   └── dev.db             # Base de datos SQLite
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── stamps/route.ts    # API: Agregar sellos y canjear
+│   │   │   └── users/route.ts     # API: Crear usuarios
+│   │   ├── [businessSlug]/
+│   │   │   ├── page.tsx           # Tarjeta del cliente
+│   │   │   └── register/page.tsx  # Registro de cliente
+│   │   └── barber/dashboard/
+│   │       └── page.tsx           # Panel del barbero + QR Scanner
+│   ├── components/
+│   │   ├── StampCard.tsx          # Visualización de sellos
+│   │   ├── QrScanner.tsx          # Escáner de QR
+│   │   └── QrCode.tsx             # Generador de QR
+│   └── lib/
+│       ├── prisma.ts              # Cliente Prisma
+│       └── utils.ts               # Utilidades
+└── .env                           # Variables de entorno
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Inicio Rápido
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# 1. Instalar dependencias
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 2. Configurar base de datos
+npx prisma migrate dev
+npx prisma db seed
 
-## Learn More
+# 3. Iniciar servidor de desarrollo
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 📱 Flujos de Uso
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 1. Cliente nuevo
+1. Escanea QR físico en la barbería → `/{businessSlug}/register`
+2. Completa registro con nombre y teléfono
+3. Ve su tarjeta digital con QR único
+4. Guarda PWA en home screen
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Validación por barbero
+1. Barbero accede a `/barber/dashboard`
+2. Escanea QR del cliente
+3. Si stamps < 5: Click "Agregar Corte Pagado"
+4. Si stamps == 5: Click "Canjear Corte Gratis"
 
-## Deploy on Vercel
+## 🎨 Diseño
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Tema oscuro**: `#0f0f0f` background
+- **Acentos ámbar/oro**: `#f59e0b`
+- **Tarjeta Memphis**: Visual clásico de tarjeta de sellos
+- **Animaciones suaves**: Al agregar sellos con framer-motion
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔌 API Endpoints
+
+### POST /api/stamps
+```json
+// Agregar sello
+{
+  "userId": "...",
+  "action": "add"
+}
+
+// Canjear gratis
+{
+  "userId": "...",
+  "action": "redeem"
+}
+```
+
+### GET /api/stamps?userId=xxx
+Obtiene información del cliente y su historial.
+
+### POST /api/users
+```json
+{
+  "name": "Juan Pérez",
+  "phone": "5512345678",
+  "businessSlug": "memphis-barberia"
+}
+```
+
+## 🧪 Datos de Prueba
+
+Después del seed, puedes probar con:
+
+- **Negocio**: Memphis Barbería
+- **URL Cliente**: http://localhost:3000/memphis-barberia
+- **URL Barbero**: http://localhost:3000/barber/dashboard
+
+Usuarios creados:
+- Carlos Rodríguez (3 sellos) - Tel: 5512345678
+- Ana Martínez (5 sellos - listo para canjear) - Tel: 5587654321
+
+## 🛠️ Tecnologías
+
+- **Next.js 16** + React 19
+- **TypeScript**
+- **Tailwind CSS 4**
+- **Prisma 5** + SQLite
+- **html5-qrcode** (escáner QR)
+- **qrcode** (generador QR)
+- **framer-motion** (animaciones)
+- **lucide-react** (iconos)
+
+## 📋 Roadmap
+
+- [ ] Autenticación de barberos (JWT)
+- [ ] Panel de administración
+- [ ] Estadísticas y reportes
+- [ ] Notificaciones push
+- [ ] Múltiples sucursales
+- [ ] Sistema de recompensas avanzado
