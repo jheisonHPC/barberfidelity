@@ -56,72 +56,23 @@ npm run dev
 1. Barbero accede a `/barber/dashboard`
 2. Escanea QR del cliente
 3. Si stamps < 5: Click "Agregar Corte Pagado"
-4. Si stamps == 5: Click "Canjear Corte Gratis"
+# barber-fidelity
 
-## 🎨 Diseño
+Sistema de tarjeta de sellos digital para barberías (5 cortes pagados = 1 corte gratis).
 
-- **Tema oscuro**: `#0f0f0f` background
-- **Acentos ámbar/oro**: `#f59e0b`
-- **Tarjeta Memphis**: Visual clásico de tarjeta de sellos
-- **Animaciones suaves**: Al agregar sellos con framer-motion
+## Inicio rápido
 
-## 🔌 API Endpoints
+```bash
+npm install
+npm run dev
+```
 
-### POST /api/stamps
-```json
-// Agregar sello
-{
-  "userId": "...",
-  "action": "add"
-}
+Si usas la base de datos (opcional en desarrollo):
 
+```bash
+npx prisma migrate dev
+npx prisma db seed
+```
+
+Eso es todo — más detalles están en el código fuente.
 // Canjear gratis
-{
-  "userId": "...",
-  "action": "redeem"
-}
-```
-
-### GET /api/stamps?userId=xxx
-Obtiene información del cliente y su historial.
-
-### POST /api/users
-```json
-{
-  "name": "Juan Pérez",
-  "phone": "5512345678",
-  "businessSlug": "memphis-barberia"
-}
-```
-
-## 🧪 Datos de Prueba
-
-Después del seed, puedes probar con:
-
-- **Negocio**: Memphis Barbería
-- **URL Cliente**: http://localhost:3000/memphis-barberia
-- **URL Barbero**: http://localhost:3000/barber/dashboard
-
-Usuarios creados:
-- Carlos Rodríguez (3 sellos) - Tel: 5512345678
-- Ana Martínez (5 sellos - listo para canjear) - Tel: 5587654321
-
-## 🛠️ Tecnologías
-
-- **Next.js 16** + React 19
-- **TypeScript**
-- **Tailwind CSS 4**
-- **Prisma 5** + SQLite
-- **html5-qrcode** (escáner QR)
-- **qrcode** (generador QR)
-- **framer-motion** (animaciones)
-- **lucide-react** (iconos)
-
-## 📋 Roadmap
-
-- [ ] Autenticación de barberos (JWT)
-- [ ] Panel de administración
-- [ ] Estadísticas y reportes
-- [ ] Notificaciones push
-- [ ] Múltiples sucursales
-- [ ] Sistema de recompensas avanzado
