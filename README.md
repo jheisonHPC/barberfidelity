@@ -1,78 +1,75 @@
-# 🪒 Sistema de Fidelización para Barberías
+# Barber Fidelity
 
-Sistema de tarjeta de sellos digital para barberías. 5 cortes pagados = 1 corte GRATIS.
+Sistema de fidelizacion para barberias:
+- Cliente: tarjeta digital con QR.
+- Barbero: escaneo y gestion de sellos.
+- Regla: 5 cortes pagados = 1 corte gratis.
 
-## 📁 Estructura del Proyecto
+## Stack
 
-```
-barber-fidelity/
-├── prisma/
-│   ├── schema.prisma      # Schema de base de datos
-│   ├── seed.ts            # Datos de prueba
-│   └── dev.db             # Base de datos SQLite
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── stamps/route.ts    # API: Agregar sellos y canjear
-│   │   │   └── users/route.ts     # API: Crear usuarios
-│   │   ├── [businessSlug]/
-│   │   │   ├── page.tsx           # Tarjeta del cliente
-│   │   │   └── register/page.tsx  # Registro de cliente
-│   │   └── barber/dashboard/
-│   │       └── page.tsx           # Panel del barbero + QR Scanner
-│   ├── components/
-│   │   ├── StampCard.tsx          # Visualización de sellos
-│   │   ├── QrScanner.tsx          # Escáner de QR
-│   │   └── QrCode.tsx             # Generador de QR
-│   └── lib/
-│       ├── prisma.ts              # Cliente Prisma
-│       └── utils.ts               # Utilidades
-└── .env                           # Variables de entorno
+- Next.js 16 (App Router)
+- Prisma ORM
+- Supabase Auth (email/password)
+- PostgreSQL (recomendado: base de datos de Supabase)
+
+## Variables de entorno
+
+Crea o actualiza `.env`:
+
+```env
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT-REF].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="[ANON_KEY]"
+QR_TOKEN_TTL_SECONDS="180"
+ENABLE_STAMP_COOLDOWN="false"
+MIN_HOURS_BETWEEN_STAMPS="12"
 ```
 
-## 🚀 Inicio Rápido
+`QR_TOKEN_TTL_SECONDS` controla la vigencia del QR dinamico del cliente (rango permitido: 60 a 600 segundos).
+`ENABLE_STAMP_COOLDOWN` activa el bloqueo de sellos demasiado seguidos.
+`MIN_HOURS_BETWEEN_STAMPS` define horas minimas entre sellos cuando el cooldown esta activo.
 
-```bash
-# 1. Instalar dependencias
-npm install
+## Configuracion de Supabase Auth
 
-# 2. Configurar base de datos
-npx prisma migrate dev
-npx prisma db seed
+1. En Supabase, habilita `Email` provider en Authentication.
+2. Crea al menos un usuario barbero (Dashboard o API Admin).
+3. Usa ese email/password para iniciar sesion en `/barber/login`.
 
-# 3. Iniciar servidor de desarrollo
-npm run dev
-```
-
-## 📱 Flujos de Uso
-
-### 1. Cliente nuevo
-1. Escanea QR físico en la barbería → `/{businessSlug}/register`
-2. Completa registro con nombre y teléfono
-3. Ve su tarjeta digital con QR único
-4. Guarda PWA en home screen
-
-### 2. Validación por barbero
-1. Barbero accede a `/barber/dashboard`
-2. Escanea QR del cliente
-3. Si stamps < 5: Click "Agregar Corte Pagado"
-# barber-fidelity
-
-Sistema de tarjeta de sellos digital para barberías (5 cortes pagados = 1 corte gratis).
-
-## Inicio rápido
+## Instalacion
 
 ```bash
 npm install
-npm run dev
 ```
 
-Si usas la base de datos (opcional en desarrollo):
+## Base de datos (Prisma + Supabase Postgres)
+
+Si vienes de SQLite, haz un push limpio al schema actual:
 
 ```bash
-npx prisma migrate dev
+npx prisma generate
+npx prisma db push
 npx prisma db seed
 ```
 
-Eso es todo — más detalles están en el código fuente.
-// Canjear gratis
+## Desarrollo
+
+```bash
+npm run dev
+```
+
+## Rutas principales
+
+- `/{businessSlug}`: registro de cliente
+- `/{businessSlug}/card/{userId}`: tarjeta digital
+- `/barber/login`: login barbero (Supabase)
+- `/barber`: panel barbero protegido
+
+## Seguridad aplicada
+
+- Eliminado login hardcodeado y `localStorage` para auth.
+- Middleware protege `/barber/*` y operaciones de sellos.
+- Endpoints protegidos:
+  - `PATCH /api/users/[id]/stamp`
+  - `POST /api/users/[id]/redeem`
+- Endpoint legado deprecado:
+  - `/api/stamps` responde `410 Gone`.

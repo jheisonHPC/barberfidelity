@@ -31,7 +31,10 @@ export default function RegistrationPage() {
     try {
       const response = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-requested-with': 'barber-fidelity',
+        },
         body: JSON.stringify({
           name: formData.name,
           phone: formData.phone,
@@ -51,7 +54,7 @@ export default function RegistrationPage() {
         setError(data.error || 'Error al crear cuenta')
         setLoading(false)
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión. Intenta de nuevo.')
       setLoading(false)
     }
@@ -206,3 +209,4 @@ export default function RegistrationPage() {
     </div>
   )
 }
+

@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import {
+  isValidBusinessSlug,
+  normalizePhone,
+  sanitizeName,
+  validateSameOriginRequest,
+} from '@/lib/security'
 
 // POST /api/users - Crear nuevo usuario
 export async function POST(request: NextRequest) {
   try {
+    const originError = validateSameOriginRequest(request)
+    if (originError) return originError
+
     const body = await request.json()
-    const { name, phone, businessSlug } = body
+    const name = sanitizeName(String(body?.name ?? ''))
+    const phone = normalizePhone(String(body?.phone ?? ''))
+    const businessSlug = String(body?.businessSlug ?? '').trim().toLowerCase()
 
     if (!name || !phone || !businessSlug) {
       return NextResponse.json(
@@ -14,37 +25,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar formato de teléfono (10 dígitos)
-    const phoneRegex = /^\d{10}$/
-    if (!phoneRegex.test(phone)) {
+    if (!isValidBusinessSlug(businessSlug)) {
       return NextResponse.json(
-        { error: 'El teléfono debe tener 10 dígitos' },
+        { error: 'Slug de negocio invalido' },
         { status: 400 }
       )
     }
 
-    // Buscar o crear el negocio por slug (lazy-load)
-    let business = await prisma.business.findUnique({
+    if (name.length < 2 || name.length > 80) {
+      return NextResponse.json(
+        { error: 'El nombre debe tener entre 2 y 80 caracteres' },
+        { status: 400 }
+      )
+    }
+
+    const phoneRegex = /^\d{10}$/
+    if (!phoneRegex.test(phone)) {
+      return NextResponse.json(
+        { error: 'El telefono debe tener 10 digitos' },
+        { status: 400 }
+      )
+    }
+
+    const business = await prisma.business.findUnique({
       where: { slug: businessSlug }
     })
 
-    // Si no existe, crearlo automáticamente
     if (!business) {
-      // Capitalizar el slug: "memphis-barberia" → "Memphis Barberia"
-      const capitalizedName = businessSlug
-        .split('-')
-        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-      
-      business = await prisma.business.create({
-        data: {
-          name: `Barbería ${capitalizedName}`,
-          slug: businessSlug
-        }
-      })
+      return NextResponse.json(
+        { error: 'Negocio no encontrado' },
+        { status: 404 }
+      )
     }
 
-    // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
       where: {
         phone_businessId: {
@@ -56,8 +69,8 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { 
-          error: 'Ya existe una cuenta con este teléfono',
+        {
+          error: 'Ya existe una cuenta con este telefono',
           user: {
             id: existingUser.id,
             name: existingUser.name,
@@ -68,7 +81,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear nuevo usuario
     const user = await prisma.user.create({
       data: {
         name,

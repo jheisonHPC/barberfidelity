@@ -1,17 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireBarberAuth } from '@/lib/auth'
+import { validateSameOriginRequest } from '@/lib/security'
 
 // POST /api/users/[id]/redeem - Canjear corte gratis
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-
-    if (!id) {
+    const scanTokenDelegate = (prisma as unknown as { scanToken?: {
+      findUnique: typeof prisma.scanToken.findUnique
+      updateMany: typeof prisma.scanToken.updateMany
+    } }).scanToken
+    if (!scanTokenDelegate) {
       return NextResponse.json(
-        { error: 'Se requiere ID de usuario' },
+        { error: 'Cliente Prisma desactualizado. Reinicia el servidor.' },
+        { status: 503 }
+      )
+    }
+
+    const originError = validateSameOriginRequest(_request)
+    if (originError) return originError
+
+    const auth = await requireBarberAuth()
+    if (auth.unauthorizedResponse) {
+      return auth.unauthorizedResponse
+    }
+    const owner = auth.owner
+
+    const { id } = await params
+    const body = await _request.json().catch(() => ({}))
+    const scanTokenValue = String(body?.scanToken ?? '').trim()
+
+    if (!id || !scanTokenValue) {
+      return NextResponse.json(
+        { error: 'Se requiere ID de usuario y QR vigente' },
         { status: 400 }
       )
     }
@@ -26,6 +50,30 @@ export async function POST(
       return NextResponse.json(
         { error: 'Usuario no encontrado' },
         { status: 404 }
+      )
+    }
+
+    if (!owner || user.businessId !== owner.businessId) {
+      return NextResponse.json(
+        { error: 'No autorizado para operar este cliente' },
+        { status: 403 }
+      )
+    }
+
+    const scanToken = await scanTokenDelegate.findUnique({
+      where: { token: scanTokenValue }
+    })
+
+    if (
+      !scanToken
+      || scanToken.userId !== id
+      || scanToken.businessId !== owner.businessId
+      || scanToken.usedAt
+      || scanToken.expiresAt <= new Date()
+    ) {
+      return NextResponse.json(
+        { error: 'QR invalido o expirado. Escanea nuevamente.' },
+        { status: 400 }
       )
     }
 
@@ -45,7 +93,7 @@ export async function POST(
     const newTotalCuts = user.totalCuts + 1
 
     // Actualizar usuario: resetear sellos a 0, incrementar cortes totales
-    const [updatedUser, redeemedStamp] = await prisma.$transaction([
+    const [updatedUser, , consumedToken] = await prisma.$transaction([
       prisma.user.update({
         where: { id },
         data: {
@@ -59,8 +107,22 @@ export async function POST(
           businessId: user.businessId,
           type: 'FREE'
         }
+      }),
+      scanTokenDelegate.updateMany({
+        where: {
+          token: scanTokenValue,
+          usedAt: null
+        },
+        data: { usedAt: new Date() }
       })
     ])
+
+    if (consumedToken.count !== 1) {
+      return NextResponse.json(
+        { error: 'QR invalido o ya utilizado. Escanea nuevamente.' },
+        { status: 400 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
@@ -70,7 +132,8 @@ export async function POST(
         phone: updatedUser.phone,
         stamps: 0,
         totalCuts: updatedUser.totalCuts,
-        canRedeem: false
+        canRedeem: false,
+        scanToken: undefined
       },
       message: '✅ Corte gratis canjeado exitosamente. El contador se ha reiniciado a 0/5.'
     })

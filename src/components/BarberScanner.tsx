@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import jsQR from 'jsqr'
 import { Camera, X, RefreshCw, Keyboard, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ interface UserData {
   stamps: number
   totalCuts: number
   canRedeem: boolean
+  scanToken?: string
 }
 
 interface BarberScannerProps {
@@ -31,6 +32,13 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
   const streamRef = useRef<MediaStream | null>(null)
   const animationRef = useRef<number | null>(null)
   const scannedRef = useRef(false)
+
+  const parseError = (err: unknown) => {
+    if (err instanceof Error) {
+      return `${err.name}: ${err.message}`
+    }
+    return String(err)
+  }
 
   // Limpiar al desmontar
   useEffect(() => {
@@ -59,7 +67,7 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
         setIsScanning(true)
         startQRDetection()
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error:', err)
       handleScanError(err)
     } finally {
@@ -111,21 +119,28 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
       })
 
       if (code) {
-        console.log('QR detectado:', code.data)
         scannedRef.current = true
         stopScanning()
         
-        // Buscar usuario
+        // Resolver token QR temporal
         try {
-          const response = await fetch(`/api/users/${code.data}`)
+          const response = await fetch('/api/scan/resolve', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-requested-with': 'barber-fidelity',
+            },
+            body: JSON.stringify({ token: code.data }),
+          })
           if (response.ok) {
             const userData = await response.json()
             onScanSuccess(userData)
           } else {
-            setError('Cliente no encontrado')
+            const data = await response.json().catch(() => ({}))
+            setError(data.error || 'QR invalido')
           }
-        } catch (err) {
-          setError('Error al buscar cliente')
+        } catch {
+          setError('Error al validar QR')
         }
         return
       }
@@ -136,8 +151,8 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
     detect()
   }
 
-  const handleScanError = (err: any) => {
-    const errorStr = err?.toString?.() || err?.message || String(err)
+  const handleScanError = (err: unknown) => {
+    const errorStr = parseError(err)
     
     if (errorStr.includes('NotAllowedError')) {
       setError('Permiso denegado. Ve a Configuración > Privacidad > Cámara.')
@@ -159,13 +174,14 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
       const response = await fetch(`/api/users/${manualId.trim()}`)
       if (response.ok) {
         const userData = await response.json()
+        userData.scanToken = undefined
         setManualId('')
         setShowManualInput(false)
         onScanSuccess(userData)
       } else {
         setError('Cliente no encontrado')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     } finally {
       setIsLoading(false)
@@ -201,17 +217,25 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
       const code = jsQR(imageData.data, imageData.width, imageData.height)
       
       if (code) {
-        const response = await fetch(`/api/users/${code.data}`)
+        const response = await fetch('/api/scan/resolve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-requested-with': 'barber-fidelity',
+          },
+          body: JSON.stringify({ token: code.data }),
+        })
         if (response.ok) {
           const userData = await response.json()
           onScanSuccess(userData)
         } else {
-          setError('Cliente no encontrado')
+          const data = await response.json().catch(() => ({}))
+          setError(data.error || 'QR invalido')
         }
       } else {
         setError('No se detectó QR en la imagen')
       }
-    } catch (err) {
+    } catch {
       setError('Error al procesar imagen')
     } finally {
       setIsLoading(false)
@@ -383,7 +407,7 @@ export function BarberScanner({ onScanSuccess, className }: BarberScannerProps) 
       {/* Tips */}
       <div className="mt-4 bg-gray-900/30 rounded-xl p-4 border border-gray-800/50">
         <p className="text-gray-500 text-xs">
-          💡 Si la cámara no funciona, usa "Subir foto del QR" o ingresa el ID manualmente.
+          💡 Si la cámara no funciona, usa &quot;Subir foto del QR&quot; o ingresa el ID manualmente.
         </p>
       </div>
     </div>

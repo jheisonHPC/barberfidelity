@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireBarberAuth } from '@/lib/auth'
+import { isValidBusinessSlug } from '@/lib/security'
 
-// GET /api/users/[id] - Obtener datos del usuario y sus sellos
+// GET /api/users/[id] - Obtener datos del usuario
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,22 +18,26 @@ export async function GET(
       )
     }
 
+    const requestedBusinessSlug = request.nextUrl.searchParams
+      .get('businessSlug')
+      ?.trim()
+      .toLowerCase() || ''
+
+    if (requestedBusinessSlug && !isValidBusinessSlug(requestedBusinessSlug)) {
+      return NextResponse.json(
+        { error: 'businessSlug invalido' },
+        { status: 400 }
+      )
+    }
+
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
         business: {
-          select: { 
-            name: true, 
-            slug: true 
-          }
-        },
-        stampHistory: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
           select: {
             id: true,
-            type: true,
-            createdAt: true
+            name: true,
+            slug: true
           }
         }
       }
@@ -44,7 +50,32 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({
+    let includeHistory = false
+
+    const auth = await requireBarberAuth()
+    if (!auth.unauthorizedResponse && auth.owner?.businessId === user.business.id) {
+      includeHistory = true
+    } else if (!requestedBusinessSlug || requestedBusinessSlug !== user.business.slug) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 403 }
+      )
+    }
+
+    const history = includeHistory
+      ? await prisma.stamp.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: {
+            id: true,
+            type: true,
+            createdAt: true
+          }
+        })
+      : undefined
+
+    const response = NextResponse.json({
       id: user.id,
       name: user.name,
       phone: user.phone,
@@ -53,8 +84,11 @@ export async function GET(
       canRedeem: user.stamps >= 5,
       businessName: user.business.name,
       businessSlug: user.business.slug,
-      history: user.stampHistory
+      ...(history ? { history } : {})
     })
+
+    response.headers.set('Cache-Control', 'no-store')
+    return response
 
   } catch (error) {
     console.error('Error en GET /api/users/[id]:', error)

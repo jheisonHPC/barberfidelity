@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,6 +14,7 @@ model Business {
   owners    Owner[]
   users     User[]
   stamps    Stamp[]
+  scanTokens ScanToken[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -42,6 +43,7 @@ model User {
   businessId  String
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   stampHistory Stamp[]
+  scanTokens   ScanToken[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -60,4 +62,20 @@ model Stamp {
 
   @@index([userId])
   @@index([businessId])
+}
+
+model ScanToken {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([expiresAt])
 }
