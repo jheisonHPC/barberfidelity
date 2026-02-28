@@ -3,11 +3,28 @@ import { prisma } from '@/lib/prisma'
 import { requireBarberAuth } from '@/lib/auth'
 import { validateSameOriginRequest } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   try {
-    const scanTokenDelegate = (prisma as unknown as { scanToken?: {
-      findUnique: typeof prisma.scanToken.findUnique
-    } }).scanToken
+    const scanTokenDelegate = (prisma as unknown as {
+      scanToken?: {
+        findUnique: (args: unknown) => Promise<{
+          token: string
+          businessId: string
+          expiresAt: Date
+          usedAt: Date | null
+          user: {
+            id: string
+            name: string
+            phone: string
+            stamps: number
+            totalCuts: number
+          }
+        } | null>
+      }
+    }).scanToken
     if (!scanTokenDelegate) {
       return NextResponse.json(
         { error: 'Cliente Prisma desactualizado. Reinicia el servidor.' },
