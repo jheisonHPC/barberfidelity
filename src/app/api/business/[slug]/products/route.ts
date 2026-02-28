@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isValidBusinessSlug } from '@/lib/security'
+import { toCanonicalBusinessSlug } from '@/lib/businessSlug'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -21,7 +22,7 @@ export async function GET(
 ) {
   try {
     const { slug } = await params
-    const normalizedSlug = String(slug ?? '').trim().toLowerCase()
+    const normalizedSlug = toCanonicalBusinessSlug(String(slug ?? ''))
 
     if (!isValidBusinessSlug(normalizedSlug)) {
       return NextResponse.json(

@@ -6,6 +6,7 @@ import {
   sanitizeName,
   validateSameOriginRequest,
 } from '@/lib/security'
+import { toCanonicalBusinessSlug } from '@/lib/businessSlug'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const name = sanitizeName(String(body?.name ?? ''))
     const phone = normalizePhone(String(body?.phone ?? ''))
-    const businessSlug = String(body?.businessSlug ?? '').trim().toLowerCase()
+    const businessSlug = toCanonicalBusinessSlug(String(body?.businessSlug ?? ''))
 
     if (!name || !phone || !businessSlug) {
       return NextResponse.json(

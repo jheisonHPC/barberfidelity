@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isValidBusinessSlug, validateSameOriginRequest } from '@/lib/security'
+import { toCanonicalBusinessSlug } from '@/lib/businessSlug'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -38,7 +39,7 @@ export async function POST(
 
     const { id } = await params
     const body = await request.json().catch(() => ({}))
-    const businessSlug = String(body?.businessSlug ?? '').trim().toLowerCase()
+    const businessSlug = toCanonicalBusinessSlug(String(body?.businessSlug ?? ''))
 
     if (!id || !businessSlug) {
       return NextResponse.json({ error: 'Faltan datos requeridos' }, { status: 400 })

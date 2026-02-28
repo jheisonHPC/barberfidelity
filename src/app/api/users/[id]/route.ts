@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireBarberAuth } from '@/lib/auth'
 import { isValidBusinessSlug } from '@/lib/security'
+import { toCanonicalBusinessSlug } from '@/lib/businessSlug'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -21,10 +22,10 @@ export async function GET(
       )
     }
 
-    const requestedBusinessSlug = request.nextUrl.searchParams
+    const requestedBusinessSlugRaw = request.nextUrl.searchParams
       .get('businessSlug')
-      ?.trim()
-      .toLowerCase() || ''
+      ?.trim() || ''
+    const requestedBusinessSlug = toCanonicalBusinessSlug(requestedBusinessSlugRaw)
 
     if (requestedBusinessSlug && !isValidBusinessSlug(requestedBusinessSlug)) {
       return NextResponse.json(
