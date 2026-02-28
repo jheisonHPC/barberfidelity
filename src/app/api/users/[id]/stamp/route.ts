@@ -5,6 +5,7 @@ import { validateSameOriginRequest } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+const STANDARD_HAIRCUT_PRICE_CENTS = 2500
 
 function isStampCooldownEnabled() {
   return String(process.env.ENABLE_STAMP_COOLDOWN ?? 'false').toLowerCase() === 'true'
@@ -155,6 +156,7 @@ export async function PATCH(
           businessId: user.businessId,
           type: 'PAID',
           serviceName: 'Corte de cabello',
+          priceCents: STANDARD_HAIRCUT_PRICE_CENTS,
         }
       }),
       scanTokenDelegate.updateMany({
