@@ -24,6 +24,7 @@ export async function POST(
     const scanTokenDelegate = (prisma as unknown as { scanToken?: {
       deleteMany: typeof prisma.scanToken.deleteMany
       create: typeof prisma.scanToken.create
+      findFirst: typeof prisma.scanToken.findFirst
     } }).scanToken
     if (!scanTokenDelegate) {
       return NextResponse.json(
@@ -57,14 +58,38 @@ export async function POST(
     }
 
     const tokenTtlSeconds = getTokenTtlSeconds()
-    const expiresAt = new Date(Date.now() + tokenTtlSeconds * 1000)
+    const now = new Date()
+
+    // Reuse the latest valid token to avoid hammering DB writes.
+    const existingValidToken = await scanTokenDelegate.findFirst({
+      where: {
+        userId: user.id,
+        businessId: user.businessId,
+        usedAt: null,
+        expiresAt: { gt: now },
+      },
+      orderBy: { expiresAt: 'desc' },
+      select: {
+        token: true,
+        expiresAt: true,
+      },
+    })
+
+    if (existingValidToken) {
+      return NextResponse.json({
+        token: existingValidToken.token,
+        expiresAt: existingValidToken.expiresAt.toISOString(),
+      })
+    }
+
+    const expiresAt = new Date(now.getTime() + tokenTtlSeconds * 1000)
     const token = randomBytes(24).toString('base64url')
 
     // Keep token table lean by removing stale rows for this user.
     await scanTokenDelegate.deleteMany({
       where: {
         userId: user.id,
-        OR: [{ usedAt: { not: null } }, { expiresAt: { lt: new Date() } }]
+        OR: [{ usedAt: { not: null } }, { expiresAt: { lt: now } }]
       }
     })
 
