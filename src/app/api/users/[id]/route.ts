@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireBarberAuth } from '@/lib/auth'
 import { isValidBusinessSlug } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // GET /api/users/[id] - Obtener datos del usuario
 export async function GET(
   request: NextRequest,

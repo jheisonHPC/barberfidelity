@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isValidBusinessSlug, validateSameOriginRequest } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 const DEFAULT_TOKEN_TTL_SECONDS = 180
 const MIN_TOKEN_TTL_SECONDS = 60
 const MAX_TOKEN_TTL_SECONDS = 600

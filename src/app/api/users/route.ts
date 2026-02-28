@@ -7,6 +7,9 @@ import {
   validateSameOriginRequest,
 } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // POST /api/users - Crear nuevo usuario
 export async function POST(request: NextRequest) {
   try {

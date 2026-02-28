@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireBarberAuth } from '@/lib/auth'
 import { validateSameOriginRequest } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 function isStampCooldownEnabled() {
   return String(process.env.ENABLE_STAMP_COOLDOWN ?? 'false').toLowerCase() === 'true'
 }

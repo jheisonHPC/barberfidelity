@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireBarberAuth } from '@/lib/auth'
 import { validateSameOriginRequest } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // POST /api/users/[id]/redeem - Canjear corte gratis
 export async function POST(
   _request: NextRequest,
