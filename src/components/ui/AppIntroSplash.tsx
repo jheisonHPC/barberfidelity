@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react'
 export function AppIntroSplash() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
+  const splashSeenKey = 'bf:splash:seen'
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (window.sessionStorage.getItem(splashSeenKey) === '1') return
 
     const bootTimer = window.setTimeout(() => {
       setVisible(true)
@@ -22,11 +24,12 @@ export function AppIntroSplash() {
     if (typeof window === 'undefined' || !visible) return
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const holdTimeMs = reducedMotion ? 900 : 2700
-    const exitTimeMs = reducedMotion ? 220 : 620
+    const holdTimeMs = reducedMotion ? 360 : 900
+    const exitTimeMs = reducedMotion ? 160 : 260
 
     const holdTimer = window.setTimeout(() => {
       setExiting(true)
+      window.sessionStorage.setItem(splashSeenKey, '1')
 
       window.setTimeout(() => {
         setVisible(false)

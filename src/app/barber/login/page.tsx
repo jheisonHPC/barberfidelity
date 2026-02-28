@@ -1,12 +1,10 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Scissors, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function BarberLoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,8 +34,8 @@ export default function BarberLoginPage() {
         return
       }
 
-      router.replace(getSafeNextPath())
-      router.refresh()
+      window.location.assign(getSafeNextPath())
+      return
     } catch {
       setError('No se pudo iniciar sesion. Revisa tu configuracion de Supabase.')
     } finally {
