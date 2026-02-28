@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isValidBusinessSlug } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 const DEFAULT_LIMIT = 12
 const MAX_LIMIT = 40
 const FIXED_PRICE_CENTS = 2500
