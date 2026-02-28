@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireBarberAuth } from '@/lib/auth'
 import { isValidBusinessSlug } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 const DEFAULT_LIMIT = 8
 const MAX_LIMIT = 20
 
@@ -66,7 +69,28 @@ export async function GET(
       }
     }
 
-    const haircuts = await prisma.haircut.findMany({
+    const haircutDelegate = (prisma as unknown as {
+      haircut?: {
+        findMany: (args: unknown) => Promise<Array<{
+          id: string
+          type: string
+          serviceName: string | null
+          priceCents: number | null
+          createdAt: Date
+        }>>
+      }
+    }).haircut
+
+    if (!haircutDelegate) {
+      const response = NextResponse.json({
+        items: [],
+        count: 0,
+      })
+      response.headers.set('Cache-Control', 'no-store')
+      return response
+    }
+
+    const haircuts = await haircutDelegate.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
       take: limit,
