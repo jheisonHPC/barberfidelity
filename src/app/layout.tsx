@@ -1,34 +1,26 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import type { Metadata } from 'next'
+import './globals.css'
+import { ToastProvider } from '@/components/ui/ToastProvider'
+import { AppIntroSplash } from '@/components/ui/AppIntroSplash'
 
 export const metadata: Metadata = {
   title: 'Barber Fidelity',
-  description: 'Sistema de fidelización para barberías con sellos digitales',
+  description: 'Sistema de fidelizacion para barberias con sellos digitales',
 }
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className="antialiased">
+        <ToastProvider>
+          <AppIntroSplash />
+          {children}
+        </ToastProvider>
       </body>
     </html>
-  );
+  )
 }

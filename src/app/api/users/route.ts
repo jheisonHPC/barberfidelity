@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const phoneRegex = /^\d{10}$/
+    const phoneRegex = /^\d{9}$/
     if (!phoneRegex.test(phone)) {
       return NextResponse.json(
-        { error: 'El telefono debe tener 10 digitos' },
+        { error: 'El telefono debe tener 9 digitos' },
         { status: 400 }
       )
     }

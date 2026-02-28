@@ -93,7 +93,7 @@ export async function POST(
     const newTotalCuts = user.totalCuts + 1
 
     // Actualizar usuario: resetear sellos a 0, incrementar cortes totales
-    const [updatedUser, , consumedToken] = await prisma.$transaction([
+    const [updatedUser, , , consumedToken] = await prisma.$transaction([
       prisma.user.update({
         where: { id },
         data: {
@@ -106,6 +106,15 @@ export async function POST(
           userId: id,
           businessId: user.businessId,
           type: 'FREE'
+        }
+      }),
+      prisma.haircut.create({
+        data: {
+          userId: id,
+          businessId: user.businessId,
+          type: 'FREE',
+          serviceName: 'Corte gratis',
+          priceCents: 0,
         }
       }),
       scanTokenDelegate.updateMany({

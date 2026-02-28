@@ -19,8 +19,8 @@ export default function RegistrationPage() {
   const formatPhone = (value: string) => {
     // Remove non-numeric characters
     const numeric = value.replace(/\D/g, '')
-    // Limit to 10 digits
-    return numeric.slice(0, 10)
+    // Limit to 9 digits
+    return numeric.slice(0, 9)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,7 +60,7 @@ export default function RegistrationPage() {
     }
   }
 
-  const isPhoneValid = formData.phone.length === 10
+  const isPhoneValid = formData.phone.length === 9
   const isNameValid = formData.name.trim().length >= 2
   const isFormValid = isPhoneValid && isNameValid
 
@@ -138,10 +138,10 @@ export default function RegistrationPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
-                  placeholder="10 dígitos (ej: 5512345678)"
+                  placeholder="9 digitos (ej: 912345678)"
                   required
-                  minLength={10}
-                  maxLength={10}
+                  minLength={9}
+                  maxLength={9}
                   className="w-full bg-gray-900/50 border border-gray-800 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500/50 focus:bg-gray-900 focus:ring-4 focus:ring-amber-500/10 transition-all"
                 />
               </div>
@@ -209,4 +209,6 @@ export default function RegistrationPage() {
     </div>
   )
 }
+
+
 

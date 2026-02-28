@@ -131,7 +131,7 @@ export async function PATCH(
     const cutsLeftForReward = Math.max(0, 5 - newStamps)
     const shouldRemindTwoCutsLeft = cutsLeftForReward === 2
 
-    const [updatedUser, , consumedToken] = await prisma.$transaction([
+    const [updatedUser, , , consumedToken] = await prisma.$transaction([
       prisma.user.update({
         where: { id },
         data: {
@@ -144,6 +144,14 @@ export async function PATCH(
           userId: id,
           businessId: user.businessId,
           type: 'PAID'
+        }
+      }),
+      prisma.haircut.create({
+        data: {
+          userId: id,
+          businessId: user.businessId,
+          type: 'PAID',
+          serviceName: 'Corte de cabello',
         }
       }),
       scanTokenDelegate.updateMany({

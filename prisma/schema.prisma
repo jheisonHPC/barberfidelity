@@ -14,6 +14,9 @@ model Business {
   owners    Owner[]
   users     User[]
   stamps    Stamp[]
+  haircuts  Haircut[]
+  products  Product[]
+  haircutStyles HaircutStyle[]
   scanTokens ScanToken[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -43,6 +46,7 @@ model User {
   businessId  String
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   stampHistory Stamp[]
+  haircutHistory Haircut[]
   scanTokens   ScanToken[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -78,4 +82,53 @@ model ScanToken {
   @@index([userId, createdAt])
   @@index([businessId, createdAt])
   @@index([expiresAt])
+}
+
+model Haircut {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  type        String   // "PAID" | "FREE"
+  serviceName String   @default("Corte de cabello")
+  priceCents  Int?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([businessId, createdAt])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  imageUrl    String?
+  priceCents  Int
+  stock       Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId, active])
+  @@index([businessId, createdAt])
+}
+
+model HaircutStyle {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  imageUrl    String?
+  priceCents  Int?
+  durationMin Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId, active])
+  @@index([businessId, createdAt])
 }
