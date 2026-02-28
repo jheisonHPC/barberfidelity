@@ -59,9 +59,14 @@ export async function GET(
       )
     }
 
-    const auth = await requireBarberAuth()
-    const isBarberFromBusiness =
-      !auth.unauthorizedResponse && auth.owner?.businessId === user.business.id
+    let isBarberFromBusiness = false
+    try {
+      const auth = await requireBarberAuth()
+      isBarberFromBusiness =
+        !auth.unauthorizedResponse && auth.owner?.businessId === user.business.id
+    } catch (authError) {
+      console.warn('Auth check failed in GET /api/users/[id]/haircuts, falling back to slug validation', authError)
+    }
 
     if (!isBarberFromBusiness) {
       if (!requestedBusinessSlug || requestedBusinessSlug !== user.business.slug) {

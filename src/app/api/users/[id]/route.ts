@@ -54,9 +54,17 @@ export async function GET(
     }
 
     let includeHistory = false
+    let isBarberFromBusiness = false
 
-    const auth = await requireBarberAuth()
-    if (!auth.unauthorizedResponse && auth.owner?.businessId === user.business.id) {
+    try {
+      const auth = await requireBarberAuth()
+      isBarberFromBusiness =
+        !auth.unauthorizedResponse && auth.owner?.businessId === user.business.id
+    } catch (authError) {
+      console.warn('Auth check failed in GET /api/users/[id], falling back to slug validation', authError)
+    }
+
+    if (isBarberFromBusiness) {
       includeHistory = true
     } else if (!requestedBusinessSlug || requestedBusinessSlug !== user.business.slug) {
       return NextResponse.json(
