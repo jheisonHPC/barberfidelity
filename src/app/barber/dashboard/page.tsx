@@ -126,112 +126,94 @@ export default async function BarberDashboardPage({
   const thirtyDaysAgo = new Date(now)
   thirtyDaysAgo.setDate(now.getDate() - 30)
 
-  const [
-    totalUsers,
-    totalHaircuts,
-    totalFreeHaircuts,
-    usersLast7Days,
-    usersLast30Days,
-    paidHaircutsLast30Days,
-    freeHaircutsLast30Days,
-    periodNewUsers,
-    periodPaidHaircuts,
-    periodFreeHaircuts,
-    periodUsersCreated,
-    periodHaircutsCreated,
-    paidHaircutsInPeriod,
-    recentUsers,
-    topUsers,
-  ] = await Promise.all([
-    prisma.user.count({ where: { businessId } }),
-    prisma.haircut.count({ where: { businessId } }),
-    prisma.haircut.count({ where: { businessId, type: 'FREE' } }),
-    prisma.user.count({ where: { businessId, createdAt: { gte: sevenDaysAgo } } }),
-    prisma.user.count({ where: { businessId, createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.haircut.count({
-      where: {
-        businessId,
-        type: 'PAID',
-        createdAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.haircut.count({
-      where: {
-        businessId,
-        type: 'FREE',
-        createdAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.user.count({
-      where: {
-        businessId,
-        createdAt: { gte: periodStart },
-      },
-    }),
-    prisma.haircut.count({
-      where: {
-        businessId,
-        type: 'PAID',
-        createdAt: { gte: periodStart },
-      },
-    }),
-    prisma.haircut.count({
-      where: {
-        businessId,
-        type: 'FREE',
-        createdAt: { gte: periodStart },
-      },
-    }),
-    prisma.user.findMany({
-      where: {
-        businessId,
-        createdAt: { gte: periodStart },
-      },
-      select: { createdAt: true },
-    }),
-    prisma.haircut.findMany({
-      where: {
-        businessId,
-        createdAt: { gte: periodStart },
-      },
-      select: { createdAt: true },
-    }),
-    prisma.haircut.findMany({
-      where: {
-        businessId,
-        type: 'PAID',
-        createdAt: { gte: periodStart },
-      },
-      select: {
-        userId: true,
-        priceCents: true,
-      },
-    }),
-    prisma.user.findMany({
-      where: { businessId },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        createdAt: true,
-        stamps: true,
-        totalCuts: true,
-      },
-    }),
-    prisma.user.findMany({
-      where: { businessId },
-      orderBy: [{ totalCuts: 'desc' }, { updatedAt: 'desc' }],
-      take: 5,
-      select: {
-        id: true,
-        name: true,
-        totalCuts: true,
-        stamps: true,
-      },
-    }),
-  ])
+  const totalUsers = await prisma.user.count({ where: { businessId } })
+  const totalHaircuts = await prisma.haircut.count({ where: { businessId } })
+  const totalFreeHaircuts = await prisma.haircut.count({ where: { businessId, type: 'FREE' } })
+  const usersLast7Days = await prisma.user.count({ where: { businessId, createdAt: { gte: sevenDaysAgo } } })
+  const usersLast30Days = await prisma.user.count({ where: { businessId, createdAt: { gte: thirtyDaysAgo } } })
+  const paidHaircutsLast30Days = await prisma.haircut.count({
+    where: {
+      businessId,
+      type: 'PAID',
+      createdAt: { gte: thirtyDaysAgo },
+    },
+  })
+  const freeHaircutsLast30Days = await prisma.haircut.count({
+    where: {
+      businessId,
+      type: 'FREE',
+      createdAt: { gte: thirtyDaysAgo },
+    },
+  })
+  const periodNewUsers = await prisma.user.count({
+    where: {
+      businessId,
+      createdAt: { gte: periodStart },
+    },
+  })
+  const periodPaidHaircuts = await prisma.haircut.count({
+    where: {
+      businessId,
+      type: 'PAID',
+      createdAt: { gte: periodStart },
+    },
+  })
+  const periodFreeHaircuts = await prisma.haircut.count({
+    where: {
+      businessId,
+      type: 'FREE',
+      createdAt: { gte: periodStart },
+    },
+  })
+  const periodUsersCreated = await prisma.user.findMany({
+    where: {
+      businessId,
+      createdAt: { gte: periodStart },
+    },
+    select: { createdAt: true },
+  })
+  const periodHaircutsCreated = await prisma.haircut.findMany({
+    where: {
+      businessId,
+      createdAt: { gte: periodStart },
+    },
+    select: { createdAt: true },
+  })
+  const paidHaircutsInPeriod = await prisma.haircut.findMany({
+    where: {
+      businessId,
+      type: 'PAID',
+      createdAt: { gte: periodStart },
+    },
+    select: {
+      userId: true,
+      priceCents: true,
+    },
+  })
+  const recentUsers = await prisma.user.findMany({
+    where: { businessId },
+    orderBy: { createdAt: 'desc' },
+    take: 8,
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      createdAt: true,
+      stamps: true,
+      totalCuts: true,
+    },
+  })
+  const topUsers = await prisma.user.findMany({
+    where: { businessId },
+    orderBy: [{ totalCuts: 'desc' }, { updatedAt: 'desc' }],
+    take: 5,
+    select: {
+      id: true,
+      name: true,
+      totalCuts: true,
+      stamps: true,
+    },
+  })
 
   const totalHaircutsLast30Days = paidHaircutsLast30Days + freeHaircutsLast30Days
   const periodTotalHaircuts = periodPaidHaircuts + periodFreeHaircuts
@@ -360,6 +342,12 @@ export default async function BarberDashboardPage({
                 )
               })}
             </div>
+            <Link
+              href={`/api/barber/dashboard/payments-csv?period=${selectedPeriodKey}`}
+              className="px-3 py-2 rounded-xl text-xs bf-btn-secondary bf-focus bf-interactive"
+            >
+              Exportar CSV
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
