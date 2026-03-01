@@ -44,6 +44,18 @@ function formatPenFromCents(valueCents: number) {
   }).format(valueCents / 100)
 }
 
+function countByType(
+  items: Array<{ type: 'PAID' | 'FREE' }>
+) {
+  let paid = 0
+  let free = 0
+  for (const item of items) {
+    if (item.type === 'PAID') paid += 1
+    if (item.type === 'FREE') free += 1
+  }
+  return { paid, free }
+}
+
 function toDayKey(value: Date) {
   return value.toISOString().slice(0, 10)
 }
@@ -127,44 +139,28 @@ export default async function BarberDashboardPage({
   thirtyDaysAgo.setDate(now.getDate() - 30)
 
   const totalUsers = await prisma.user.count({ where: { businessId } })
-  const totalHaircuts = await prisma.haircut.count({ where: { businessId } })
-  const totalFreeHaircuts = await prisma.haircut.count({ where: { businessId, type: 'FREE' } })
   const usersLast7Days = await prisma.user.count({ where: { businessId, createdAt: { gte: sevenDaysAgo } } })
   const usersLast30Days = await prisma.user.count({ where: { businessId, createdAt: { gte: thirtyDaysAgo } } })
-  const paidHaircutsLast30Days = await prisma.haircut.count({
-    where: {
-      businessId,
-      type: 'PAID',
-      createdAt: { gte: thirtyDaysAgo },
-    },
-  })
-  const freeHaircutsLast30Days = await prisma.haircut.count({
-    where: {
-      businessId,
-      type: 'FREE',
-      createdAt: { gte: thirtyDaysAgo },
-    },
-  })
   const periodNewUsers = await prisma.user.count({
     where: {
       businessId,
       createdAt: { gte: periodStart },
     },
   })
-  const periodPaidHaircuts = await prisma.haircut.count({
+
+  const allHaircutTypes = await prisma.haircut.findMany({
+    where: { businessId },
+    select: { type: true },
+  })
+
+  const last30Haircuts = await prisma.haircut.findMany({
     where: {
       businessId,
-      type: 'PAID',
-      createdAt: { gte: periodStart },
+      createdAt: { gte: thirtyDaysAgo },
     },
+    select: { type: true },
   })
-  const periodFreeHaircuts = await prisma.haircut.count({
-    where: {
-      businessId,
-      type: 'FREE',
-      createdAt: { gte: periodStart },
-    },
-  })
+
   const periodUsersCreated = await prisma.user.findMany({
     where: {
       businessId,
@@ -172,22 +168,24 @@ export default async function BarberDashboardPage({
     },
     select: { createdAt: true },
   })
-  const periodHaircutsCreated = await prisma.haircut.findMany({
-    where: {
-      businessId,
-      createdAt: { gte: periodStart },
-    },
-    select: { createdAt: true },
-  })
+
   const paidHaircutsInPeriod = await prisma.haircut.findMany({
     where: {
       businessId,
-      type: 'PAID',
       createdAt: { gte: periodStart },
     },
     select: {
+      type: true,
+      createdAt: true,
       userId: true,
       priceCents: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+        },
+      },
     },
   })
   const recentUsers = await prisma.user.findMany({
@@ -215,7 +213,23 @@ export default async function BarberDashboardPage({
     },
   })
 
+  const totalByType = countByType(allHaircutTypes)
+  const totalHaircuts = totalByType.paid + totalByType.free
+  const totalFreeHaircuts = totalByType.free
+
+  const last30ByType = countByType(last30Haircuts)
+  const paidHaircutsLast30Days = last30ByType.paid
+  const freeHaircutsLast30Days = last30ByType.free
   const totalHaircutsLast30Days = paidHaircutsLast30Days + freeHaircutsLast30Days
+
+  const periodHaircutsCreated = paidHaircutsInPeriod.map((item) => ({
+    createdAt: item.createdAt,
+  }))
+  const periodByType = countByType(
+    paidHaircutsInPeriod.map((item) => ({ type: item.type }))
+  )
+  const periodPaidHaircuts = periodByType.paid
+  const periodFreeHaircuts = periodByType.free
   const periodTotalHaircuts = periodPaidHaircuts + periodFreeHaircuts
   const periodFreeShare = periodTotalHaircuts > 0
     ? (periodFreeHaircuts / periodTotalHaircuts) * 100
@@ -251,6 +265,7 @@ export default async function BarberDashboardPage({
   let periodPaidRevenueCents = 0
 
   for (const paidHaircut of paidHaircutsInPeriod) {
+    if (paidHaircut.type !== 'PAID') continue
     const paidAmount = paidHaircut.priceCents ?? STANDARD_HAIRCUT_PRICE_CENTS
     periodPaidRevenueCents += paidAmount
     const previous = paidByUser.get(paidHaircut.userId) ?? { paidCuts: 0, paidCents: 0 }
@@ -260,21 +275,12 @@ export default async function BarberDashboardPage({
     })
   }
 
+  const paidUsersIndex = new Map(
+    paidHaircutsInPeriod
+      .filter((item) => item.type === 'PAID' && item.user)
+      .map((item) => [item.userId, item.user as { id: string; name: string; phone: string }])
+  )
   const paidUserIds = [...paidByUser.keys()]
-  const paidUsers = paidUserIds.length > 0
-    ? await prisma.user.findMany({
-        where: {
-          id: { in: paidUserIds },
-          businessId,
-        },
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-        },
-      })
-    : []
-  const paidUsersIndex = new Map(paidUsers.map((user) => [user.id, user]))
   const periodClientPayments = paidUserIds
     .map((userId) => {
       const user = paidUsersIndex.get(userId)
